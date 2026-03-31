@@ -1,0 +1,16 @@
+jobs/
+cache/
+logs/
+*.ckpt
+*.h5
+*.hdf5
+*.ckpt
+*.pth
+*.pt
+*.tar
+*.zip
+__pycache__/
+data_dirs.yaml
+*.ckpt
+trained_models/
+*.npz
