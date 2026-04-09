@@ -8,9 +8,8 @@ from torch.nn.functional import cosine_similarity
 import itertools
 
 class EdgeModel(nn.Module):
-    """
-    Class used to perform the edge update during Neural message passing
-    """
+    """Class used to perform the edge update during Neural message passing, Visual Camera Re-Localization using
+    Graph Neural Networks and Relative Pose Supervision."""
 
     def __init__(self, edge_CNN, in_channels, H, W, in_channels_edge):
         super(EdgeModel, self).__init__()
@@ -30,7 +29,7 @@ class EdgeModel(nn.Module):
         out = self.edge_CNN(out)
 
         return out.view(out.size(0), -1)
-    
+
 
 def batch_cosine_similarity(x, y, pooling=None):
     b = x.size(0)
@@ -62,6 +61,7 @@ def batch_cosine_similarity(x, y, pooling=None):
 
 
 class myGNN(MessagePassing):
+    """From Visual Camera Re-Localization using Graph Neural Networks and Relative Pose Supervision."""
     def __init__(self, in_channels, out_channels, H, W, aggr="add", attention=False, pooling=None,
                  k=-1, first_GNN_layer=False, **kwargs):
         super(myGNN, self).__init__(aggr=aggr, **kwargs)
@@ -181,13 +181,14 @@ class myGNN(MessagePassing):
     def __repr__(self):
         return '{}({}, {})'.format(self.__class__.__name__, self.in_channels,
                                    self.out_channels)
-    
+
 
 # Code adapted from OpenGlue, MIT license
 # https://github.com/ucuapps/OpenGlue/blob/main/models/superglue/optimal_transport.py
 def log_otp_solver(log_a, log_b, M, num_iters: int = 20, reg: float = 1.0) -> torch.Tensor:
     r"""Sinkhorn matrix scaling algorithm for Differentiable Optimal Transport problem.
-    This function solves the optimization problem and returns the OT matrix for the given parameters.
+
+    This function solves the optimization problem and returns the O T matrix for the given parameters.
     Args:
         log_a : torch.Tensor
             Source weights
@@ -209,7 +210,7 @@ def log_otp_solver(log_a, log_b, M, num_iters: int = 20, reg: float = 1.0) -> to
         v = log_b - torch.logsumexp(M + u.unsqueeze(2), dim=1).squeeze()
 
     return M + u.unsqueeze(2) + v.unsqueeze(1)
-    
+
 
 # Define the MLP module for edge classification
 class EdgeMLP(nn.Module):
@@ -217,8 +218,7 @@ class EdgeMLP(nn.Module):
         """Init function for the EdgeMLP model.
 
         Args:
-            input_dim: Di
-            mension of the input features (concatenated embeddings)
+            input_dim: Dimension of the input features (concatenated embeddings)
             hidden_dim: Dimension of the hidden layer
             output_dim: Dimension of the output (number of classes)
         """
@@ -240,12 +240,10 @@ class EdgeMLP(nn.Module):
         x = F.relu(self.fc1(x))
         if self.dropout > 0: x= self.dropout_layer(x)
         x = self.fc2(x)
-        return x   
-    
-class Custom_GNN_Predcitor(nn.Module):
-    """
+        return x
 
-    """
+class Custom_GNN_Predcitor(nn.Module):
+    """"""
     def __init__(self,
             model_name='Custom_GNN_Predcitor',
             num_channels=1536,
@@ -253,10 +251,10 @@ class Custom_GNN_Predcitor(nn.Module):
             cluster_dim=128,
             token_dim=256,
             dropout=0.3,
-            num_classes=1, 
+            num_classes=1,
             dropout_mlp=0.,
-            attention=False, 
-            return_edges=False, 
+            attention=False,
+            return_edges=False,
             knn=-1
         ) -> None:
         super().__init__()
@@ -295,9 +293,9 @@ class Custom_GNN_Predcitor(nn.Module):
         self.knn = knn
 
     def forward(self, nodes, edge_indices=None, aggre_weights=None):
-       
+
         N = nodes.shape[0]
-        if edge_indices is None: 
+        if edge_indices is None:
             # similarity matrix S
             S = torch.einsum('id,jd->ij', nodes, nodes) # B, B
             diagonal = torch.eye(N, N).bool().to(S.device)
@@ -306,17 +304,14 @@ class Custom_GNN_Predcitor(nn.Module):
             # Generate all two-element combinations
             combinations = list(itertools.combinations(indices, 2))
             edge_indices = torch.tensor(combinations).T.to(S.device)
-    
+
         else:
             S = torch.einsum('id,jd->ij', nodes, nodes) # B, B
             diagonal = torch.eye(N, N).bool().to(S.device)
             S.masked_fill_(diagonal, -torch.inf)
-        
+
         edge_weights = S[edge_indices[0], edge_indices[1]]
-        # 2. set a threshold for mask generation, and concatenate all nodes on the edges
-        # 3. transformers on all edges,  + MLP to predict relations between pairs
         graph_data = Data(x=nodes, edge_index=edge_indices, edge_attr=edge_weights)
-        #edge_features = MLP(node i, node j)
         nodes, updatd_edges = self.graph_transform(graph_data.x, graph_data.edge_index, graph_data.edge_attr, aggre_weights=aggre_weights)
 
         assert edge_indices.shape[1] == updatd_edges.shape[0]
@@ -328,4 +323,3 @@ class Custom_GNN_Predcitor(nn.Module):
             return_dic['edge_features'] = updatd_edges
 
         return return_dic
-

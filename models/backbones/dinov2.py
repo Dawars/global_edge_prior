@@ -9,11 +9,10 @@ DINOV2_ARCHS = {
 }
 
 class DINOv2(nn.Module):
-    """
-    DINOv2 model
+    """DINOv2 model.
 
     Args:
-        model_name (str): The name of the model architecture 
+        model_name (str): The name of the model architecture
             should be one of ('dinov2_vits14', 'dinov2_vitb14', 'dinov2_vitl14', 'dinov2_vitg14')
         num_trainable_blocks (int): The number of last blocks in the model that are trainable.
         norm_layer (bool): If True, a normalization layer is applied in the forward pass.
@@ -37,8 +36,7 @@ class DINOv2(nn.Module):
 
 
     def forward(self, x):
-        """
-        The forward method for the DINOv2 class
+        """The forward method for the DINOv2 class.
 
         Parameters:
             x (torch.Tensor): The input tensor [B, 3, H, W]. H and W should be divisible by 14.
@@ -51,7 +49,7 @@ class DINOv2(nn.Module):
         B, C, H, W = x.shape
 
         x = self.model.prepare_tokens_with_masks(x)
-        
+
         # First blocks are frozen
         with torch.no_grad():
             for blk in self.model.blocks[:-self.num_trainable_blocks]:
@@ -64,7 +62,7 @@ class DINOv2(nn.Module):
 
         if self.norm_layer:
             x = self.model.norm(x)
-        
+
         t = x[:, 0]
         f = x[:, 1:]
 

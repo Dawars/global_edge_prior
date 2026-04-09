@@ -10,19 +10,18 @@ class ResNet(nn.Module):
                  layers_to_freeze=2,
                  layers_to_crop=[],
                  ):
-        """Class representing the resnet backbone used in the pipeline
-        we consider resnet network as a list of 5 blocks (from 0 to 4),
-        layer 0 is the first conv+bn and the other layers (1 to 4) are the rest of the residual blocks
-        we don't take into account the global pooling and the last fc
+        """Class representing the resnet backbone used in the pipeline we consider resnet network as a list of 5
+        blocks (from 0 to 4), layer 0 is the first conv+bn and the other layers (1 to 4) are the rest of the
+        residual blocks we don't take into account the global pooling and the last fc.
 
         Args:
-            model_name (str, optional): The architecture of the resnet backbone to instanciate. Defaults to 'resnet50'.
+            model_name (str, optional): The architecture of the resnet backbone to instantiate. Defaults to 'resnet50'.
             pretrained (bool, optional): Whether pretrained or not. Defaults to True.
             layers_to_freeze (int, optional): The number of residual blocks to freeze (starting from 0) . Defaults to 2.
             layers_to_crop (list, optional): Which residual layers to crop, for example [3,4] will crop the third and fourth res blocks. Defaults to [].
 
         Raises:
-            NotImplementedError: if the model_name corresponds to an unknown architecture. 
+            NotImplementedError: if the model_name corresponds to an unknown architecture.
         """
         super().__init__()
         self.model_name = model_name.lower()
@@ -82,7 +81,7 @@ class ResNet(nn.Module):
         out_channels = 2048
         if '34' in model_name or '18' in model_name:
             out_channels = 512
-            
+
         self.out_channels = out_channels // 2 if self.model.layer4 is None else out_channels
         self.out_channels = self.out_channels // 2 if self.model.layer3 is None else self.out_channels
 

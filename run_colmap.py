@@ -4,8 +4,7 @@ import yaml
 import numpy as np
 import pycolmap
 from pathlib import Path
-
-from src.utils import *
+import argparse
 from src.sfm_utils import *
 
 
@@ -142,7 +141,11 @@ def evaluate_imc(args, year, gt_position_accuracy=0.02):
                     sparse=sparse_recon,
                     min_proj_center_dist=gt_position_accuracy,
                     return_pairs=True,
-                )
+                )  if not args.glomap else compute_rel_errors_glomap(
+                    sparse_gt=sparse_gt,
+                    sparse=sparse_recon,
+                    min_proj_center_dist=gt_position_accuracy,
+                    return_pairs=True,)
 
                 dt_dict[com] = dts
                 dr_dict[com] = dRs
@@ -433,6 +436,94 @@ def main():
     print("\nResults\n")
     print(format_results(args, results))
 
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data_path", default='')
+    parser.add_argument(
+        "--datasets", nargs="+", default=["imc2023"]
+    )
+    parser.add_argument(
+        "--categories",
+        nargs="+",
+        default=['phototourism'],
+        help="Categories to evaluate, if empty all categories are evaluated.",
+    )
+    parser.add_argument(
+        "--scenes",
+        nargs="+",
+        default=[],
+        help="Scenes to evaluate, if empty all scenes are evaluated.",
+    )
+    parser.add_argument("--run_path", default=Path("runs_glomap"))
+
+    parser.add_argument(
+        "--overwrite_database", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--overwrite_reconstruction", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--overwrite_alignment", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--sp_lg", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--trees", default=False, action="store_true"
+    )
+    parser.add_argument(
+        "--reestimate_by_superransac", default=True, required=False
+    )
+    parser.add_argument("--colmap_path", default="/mnt/appl/software/COLMAP/3.10-foss-2023b-CUDA-12.4.0/bin/colmap", required=False)
+    parser.add_argument("--use_gpu", default=True, action="store_true")
+    parser.add_argument("--use_cpu", default=False, action="store_true")
+    parser.add_argument("--num_threads", type=int, default=-1)
+    parser.add_argument("--k", type=int, default=40)
+    parser.add_argument("--quality", default="high")
+    parser.add_argument("--pairs", default="")
+    parser.add_argument("--prefix", default="")
+    parser.add_argument("--suffix", default="")
+    parser.add_argument("--database_path", default="")
+    parser.add_argument("--max_num_tracks", type=int, default=-1)
+    parser.add_argument("--workspace_path", default="/run_colmap", required=False)
+    parser.add_argument("--ba_refine_extra_params", default=None)
+    parser.add_argument("--glomap", default=False, action="store_true")
+    parser.add_argument("--image_list_path", default=None)
+    parser.add_argument("--delete_h5", default=False, action="store_true")
+    parser.add_argument("--prepared_sp_lg", default=None)
+
+    parser.add_argument(
+        "--error_type",
+        default="relative",
+        choices=["relative", "absolute"],
+        help="Whether to evaluate relative pairwise pose errors in angular "
+        "distance or absolute pose errors through GT alignment.",
+    )
+    parser.add_argument(
+        "--rel_error_thresholds",
+        type=float,
+        nargs="+",
+        default=[2.5, 5, 10, 20],
+        help="Evaluation thresholds in degrees.",
+    )
+    parser.add_argument(
+        "--abs_error_thresholds",
+        type=float,
+        nargs="+",
+        default=[1, 5],
+        help="Evaluation thresholds in meters.",
+    )
+    args = parser.parse_args()
+    # args.data_path = Path("/mnt/personal/weitong/cache/").resolve()
+    args.colmap_path = Path(args.colmap_path).resolve()
+    if args.overwrite_database:
+        print("Overwriting database also overwrites reconstruction")
+        args.overwrite_reconstruction = True
+    if args.overwrite_reconstruction:
+        print("Overwriting reconstruction also overwrites alignment")
+        args.overwrite_alignment = True
+    return args
 
 if __name__ == "__main__":
     main()

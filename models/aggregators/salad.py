@@ -7,7 +7,8 @@ import torch.nn.functional as F
 # https://github.com/ucuapps/OpenGlue/blob/main/models/superglue/optimal_transport.py
 def log_otp_solver(log_a, log_b, M, num_iters: int = 20, reg: float = 1.0) -> torch.Tensor:
     r"""Sinkhorn matrix scaling algorithm for Differentiable Optimal Transport problem.
-    This function solves the optimization problem and returns the OT matrix for the given parameters.
+
+    This function solves the optimization problem and returns the O T matrix for the given parameters.
     Args:
         log_a : torch.Tensor
             Source weights
@@ -34,7 +35,7 @@ def log_otp_solver(log_a, log_b, M, num_iters: int = 20, reg: float = 1.0) -> to
 # Code adapted from OpenGlue, MIT license
 # https://github.com/ucuapps/OpenGlue/blob/main/models/superglue/superglue.py
 def get_matching_probs(S, dustbin_score = 1.0, num_iters=3, reg=1.0):
-    """sinkhorn"""
+    """sinkhorn."""
     batch_size, m, n = S.size()
     # augment scores matrix
     S_aug = torch.empty(batch_size, m + 1, n, dtype=S.dtype, device=S.device)
@@ -57,8 +58,7 @@ def get_matching_probs(S, dustbin_score = 1.0, num_iters=3, reg=1.0):
 
 
 class SALAD(nn.Module):
-    """
-    This class represents the Sinkhorn Algorithm for Locally Aggregated Descriptors (SALAD) model.
+    """This class represents the Sinkhorn Algorithm for Locally Aggregated Descriptors (SALAD) model.
 
     Attributes:
         num_channels (int): The number of channels of the inputs (d).
@@ -80,7 +80,7 @@ class SALAD(nn.Module):
         self.num_clusters= num_clusters
         self.cluster_dim = cluster_dim
         self.token_dim = token_dim
-        
+
         if dropout > 0:
             dropout = nn.Dropout(dropout)
         else:
@@ -111,19 +111,17 @@ class SALAD(nn.Module):
 
 
     def forward(self, x):
-        """
-        x (tuple): A tuple containing two elements, f and t. 
-            (torch.Tensor): The feature tensors (t_i) [B, C, H // 14, W // 14].
-            (torch.Tensor): The token tensor (t_{n+1}) [B, C].
+        """X (tuple): A tuple containing two elements, f and t. (torch.Tensor): The feature tensors (t_i) [B, C, H
+        // 14, W // 14]. (torch.Tensor): The token tensor (t_{n+1}) [B, C].
 
         Returns:
             f (torch.Tensor): The global descriptor [B, m*l + g]
         """
-        x, t = x # Extract features and token: B, D, 16, 16 patch features + B, D global features 
+        x, t = x # Extract features and token: B, D, 16, 16 patch features + B, D global features
         f = self.cluster_features(x).flatten(2) # B, d_cluster, 256
         p = self.score(x).flatten(2) # B, d_score, 256
         t = self.token_features(t)
-        
+
         # Sinkhorn algorithm
         p = get_matching_probs(p, self.dust_bin, 3)
         p = torch.exp(p)

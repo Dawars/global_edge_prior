@@ -3,7 +3,6 @@ import itertools
 from torch.optim import lr_scheduler
 import pandas as pd
 import numpy as np
-from src.utils import *
 from src.losses import *
 from models import helper
 from torchmetrics import AveragePrecision
@@ -14,7 +13,7 @@ from models.aggregators.megaloc import MegaLocModel
 
 
 def global_tokens2scores(descriptors):
-    scores = torch.einsum('id,jd->ij', descriptors, descriptors) 
+    scores = torch.einsum('id,jd->ij', descriptors, descriptors)
     N = descriptors.shape[0]
     diagonal = torch.eye(N, N).bool().to(scores.device)
     scores.masked_fill_(diagonal, -torch.inf)
@@ -23,15 +22,12 @@ def global_tokens2scores(descriptors):
 class EdgeRankModel(pl.LightningModule):
 
     def __init__(self,
-        #---- Aggregator
-        agg_arch='MegsLoc',
-        agg_config={},
-        
+
         #---- Edge classifier
         edge_arch='MLP',
         edge_config={},
         #---- Train hyperparameters
-        lr=1e-5, 
+        lr=1e-5,
         optimizer='adamw',
         weight_decay=1e-4,
         momentum=0.9,
@@ -41,19 +37,16 @@ class EdgeRankModel(pl.LightningModule):
             'end_factor': 0.2,
             'total_iters': 4000,
         },
-        
+
         #----- Loss
-        loss_name='NDCG', 
+        loss_name='NDCG',
         loss_config={'k':3000, 'reduction': 'mean', 'mu':50, 'sigma':5},
-        binary_labels=False, 
-        threshold=10., 
-        test=False, 
+        binary_labels=False,
+        threshold=10.,
+        test=False,
+        device='cuda'
     ):
         super().__init__()
-        
-        # Aggregator
-        self.agg_arch = agg_arch
-        self.agg_config = agg_config
 
         # Edge classifier
         self.edge_arch = edge_arch
@@ -69,58 +62,66 @@ class EdgeRankModel(pl.LightningModule):
         # Loss
         self.loss_name = loss_name
         self.save_hyperparameters() # write hyperparams into a file
-        
+
         self.loss_fn = get_loss(loss_name, loss_config)
-        self.batch_acc = [] # we will keep track of the % of trivial pairs/triplets at the loss level 
+        self.batch_acc = [] # we will keep track of the % of trivial pairs/triplets at the loss level
 
         self.binary_labels = binary_labels
         self.threshold=threshold
-        if test:
-            self.backbone = MegaLocModel()
-        else:
-            self.backbone = torch.hub.load("gmberton/MegaLoc", "get_trained_model").cuda()
-            self.backbone.train()
+        # if test:
+        #     self.backbone = MegaLocModel()
+        # else:
+        #     self.backbone = torch.hub.load("gmberton/MegaLoc", "get_trained_model").cuda()
+        #     self.backbone.train()
+        #     self.average_precision = AveragePrecision(task="binary")
+        self.backbone = MegaLocModel()
+
+        if not test:
+            pretrained = torch.hub.load("gmberton/MegaLoc", "get_trained_model")
+            self.backbone.load_state_dict(pretrained.state_dict())
             self.average_precision = AveragePrecision(task="binary")
+        self.backbone.to(device)
 
         for p in self.backbone.parameters():
             p.requires_grad = True
         for name, param in self.backbone.named_parameters():
             if name.startswith("backbone"):
                 param.requires_grad = False
+
         self.edge_classifier = helper.get_classifier(edge_arch, edge_config)
         self.aggregate_weights=None
 
     # the forward pass of the lightning model
     def forward(self, x, aggre_weights=None):
 
-        x = self.backbone(x)    
+        x = self.backbone(x)
         x = self.edge_classifier(x, aggre_weights=aggre_weights)
         return x
-    
-    # configure the optimizer 
+
+    # configure the optimizer
     def configure_optimizers(self):
         if self.optimizer.lower() == 'sgd':
             optimizer = torch.optim.SGD(
-                filter(lambda p: p.requires_grad, self.parameters()), 
-                lr=self.lr, 
-                weight_decay=self.weight_decay, 
+                filter(lambda p: p.requires_grad, self.parameters()),
+                lr=self.lr,
+                weight_decay=self.weight_decay,
                 momentum=self.momentum
             )
         elif self.optimizer.lower() == 'adamw':
             optimizer = torch.optim.AdamW(
                 filter(lambda p: p.requires_grad, self.parameters()),
-                lr=self.lr, 
+                lr=self.lr,
                 weight_decay=self.weight_decay
             )
         elif self.optimizer.lower() == 'adam':
             optimizer = torch.optim.AdamW(
-                filter(lambda p: p.requires_grad, self.parameters()), 
-                lr=self.lr, 
+                filter(lambda p: p.requires_grad, self.parameters()),
+                lr=self.lr,
                 weight_decay=self.weight_decay
             )
         else:
             raise ValueError(f'Optimizer {self.optimizer} has not been added to "configure_optimizers()"')
-        
+
         if self.lr_sched.lower() == 'multistep':
             scheduler = lr_scheduler.MultiStepLR(optimizer, milestones=self.lr_sched_args['milestones'], gamma=self.lr_sched_args['gamma'])
         elif self.lr_sched.lower() == 'cosine':
@@ -134,7 +135,7 @@ class EdgeRankModel(pl.LightningModule):
             )
 
         return [optimizer], [scheduler]
-    
+
     # configure the optizer step, takes into account the warmup stage
     def optimizer_step(self, epoch, batch_idx, optimizer, optimizer_closure):
         # warm up lr
@@ -157,7 +158,7 @@ class EdgeRankModel(pl.LightningModule):
 
             mask = torch.triu(torch.ones_like(S, dtype=torch.bool), diagonal=1)
         return (S *top_mask)[mask]
-    
+
     def initialize_agg_weights_tokens(self, tokens):
         with torch.no_grad():
             S = global_tokens2scores(tokens)
@@ -172,7 +173,7 @@ class EdgeRankModel(pl.LightningModule):
 
             mask = torch.triu(torch.ones_like(S, dtype=torch.bool), diagonal=1)
         return (S *top_mask)[mask]
-    
+
     def training_step(self, batch):
 
         total_loss = 0
@@ -191,8 +192,9 @@ class EdgeRankModel(pl.LightningModule):
         gt_labels_class = batch[2]
         total_loss = 0
         BS, N, ch, h, w = images.shape
-        if (self.edge_config['knn'] > 0): 
+        if (self.edge_config['knn'] > 0):
             self.aggregate_weights = self.initialize_agg_weights(images.view(BS*N, ch, h, w))
+
         # Feed forward the batch to the model
         results = self(images.view(BS*N, ch, h, w), aggre_weights=self.aggregate_weights)
         output, edge_indices = results['edges'], results['edge_indices']
@@ -200,7 +202,7 @@ class EdgeRankModel(pl.LightningModule):
         combinations = list(itertools.combinations(indices, 2))
         all_edge_indices = torch.tensor(combinations).T
 
-        assert (all_edge_indices.to('cuda')==edge_indices).all()
+        assert (all_edge_indices.to(images.device)==edge_indices).all()
         full_label = torch.zeros(BS*N, BS*N).to(gt_labels.device)
 
         for i in range(BS):
@@ -212,7 +214,7 @@ class EdgeRankModel(pl.LightningModule):
         predicted_labels = torch.sigmoid(output.squeeze()).to(gt_labels.device)
         binary_gt_labels = (gt_labels_class[0][edge_indices[0], edge_indices[1]].to(gt_labels.device) >self.threshold) + 0.
 
-        loss = self.loss_fn(predicted_labels, gt_labels) 
+        loss = self.loss_fn(predicted_labels, gt_labels)
         ap_score = self.average_precision(predicted_labels, binary_gt_labels.to(torch.int32))
         total_loss += loss
 
@@ -221,15 +223,15 @@ class EdgeRankModel(pl.LightningModule):
         self.log(f'ap-score_{batch_id}', ap_score.item(), logger=True, prog_bar=True)
 
         return {f'loss_{batch_id}': total_loss}
-    
+
     def on_train_epoch_end(self):
         self.batch_acc = []
-    
-    
+
+
     def validation_step(self, batch):
 
         total_loss = 0
-        BS = len(batch[0])  
+        BS = len(batch[0])
         for b in range(BS):
             one_batch = [data[b].unsqueeze(0) for data in batch]
             out = self._process_one_scene_val(one_batch, b)
@@ -237,15 +239,16 @@ class EdgeRankModel(pl.LightningModule):
 
         self.log("val_loss", total_loss/BS)
         return {"val_loss": total_loss/BS}
-    
+
     def _process_one_scene_val(self, batch, batch_idx):
 
         images = batch[0]
         gt_labels = batch[1]
         gt_labels_class = batch[2]
         BS, N, ch, h, w = images.shape
-        if self.edge_config['knn'] > 0: 
+        if self.edge_config['knn'] > 0:
             self.aggregate_weights = self.initialize_agg_weights(images.view(BS*N, ch, h, w))
+
         # Feed forward the batch to the model
         with torch.no_grad():
             results = self(images.view(BS*N, ch, h, w), aggre_weights=self.aggregate_weights)
@@ -253,7 +256,7 @@ class EdgeRankModel(pl.LightningModule):
         indices = list(range(BS*N))
         combinations = list(itertools.combinations(indices, 2))
         all_edge_indices = torch.tensor(combinations).T
-        assert (all_edge_indices.to('cuda')==edge_indices).all()
+        assert (all_edge_indices.to(images.device)==edge_indices).all()
 
         full_label = torch.zeros(BS*N, BS*N).to(gt_labels.device)
         for i in range(BS):
@@ -265,7 +268,7 @@ class EdgeRankModel(pl.LightningModule):
         predicted_labels = torch.sigmoid(output.squeeze()).to(gt_labels.device)
         binary_gt_labels =  (gt_labels_class[0][all_edge_indices[0], all_edge_indices[1]] > self.threshold) + 0.
 
-        loss = self.loss_fn(predicted_labels, gt_labels) 
+        loss = self.loss_fn(predicted_labels, gt_labels)
         ap_score = self.average_precision(predicted_labels, binary_gt_labels.to(torch.int32))
         total_loss = loss
 
@@ -274,4 +277,3 @@ class EdgeRankModel(pl.LightningModule):
         self.log(f'val_ap-score_{batch_idx}', ap_score.item(), logger=True, prog_bar=True)
 
         return {f'val_loss_{batch_idx}': total_loss}
-

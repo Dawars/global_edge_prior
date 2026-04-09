@@ -19,7 +19,7 @@ class CosPlace(nn.Module):
 
     Args:
         in_dim: number of channels of the input
-        out_dim: dimension of the output descriptor 
+        out_dim: dimension of the output descriptor
     """
     def __init__(self, in_dim, out_dim):
         super().__init__()

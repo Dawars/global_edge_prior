@@ -22,7 +22,7 @@ class ConvAP(nn.Module):
         x = self.AAP(x)
         x = F.normalize(x.flatten(1), p=2, dim=1)
         return x
-    
+
 
 if __name__ == '__main__':
     x = torch.randn(4, 2048, 10, 10)

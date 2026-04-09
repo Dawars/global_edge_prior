@@ -1,4 +1,5 @@
 """Code for the MegaLoc model.
+
 Much of the code in this file is from SALAD https://github.com/serizba/salad
 """
 
@@ -88,6 +89,7 @@ class DINOv2(nn.Module):
 # https://github.com/ucuapps/OpenGlue/blob/main/models/superglue/optimal_transport.py
 def log_otp_solver(log_a, log_b, M, num_iters: int = 20, reg: float = 1.0) -> torch.Tensor:
     r"""Sinkhorn matrix scaling algorithm for Differentiable Optimal Transport problem.
+
     This function solves the optimization problem and returns the OT matrix for the given parameters.
     Args:
         log_a : torch.Tensor
@@ -115,7 +117,7 @@ def log_otp_solver(log_a, log_b, M, num_iters: int = 20, reg: float = 1.0) -> to
 # Code adapted from OpenGlue, MIT license
 # https://github.com/ucuapps/OpenGlue/blob/main/models/superglue/superglue.py
 def get_matching_probs(S, dustbin_score=1.0, num_iters=3, reg=1.0):
-    """sinkhorn"""
+    """sinkhorn."""
     batch_size, m, n = S.size()
     # augment scores matrix
     S_aug = torch.empty(batch_size, m + 1, n, dtype=S.dtype, device=S.device)
@@ -132,8 +134,7 @@ def get_matching_probs(S, dustbin_score=1.0, num_iters=3, reg=1.0):
 
 
 class SALAD(nn.Module):
-    """
-    This class represents the Sinkhorn Algorithm for Locally Aggregated Descriptors (SALAD) model.
+    """This class represents the Sinkhorn Algorithm for Locally Aggregated Descriptors (SALAD) model.
 
     Attributes:
         num_channels (int): The number of channels of the inputs (d).
@@ -187,10 +188,8 @@ class SALAD(nn.Module):
         self.dust_bin = nn.Parameter(torch.tensor(1.0))
 
     def forward(self, x):
-        """
-        x (tuple): A tuple containing two elements, f and t.
-            (torch.Tensor): The feature tensors (t_i) [B, C, H // 14, W // 14].
-            (torch.Tensor): The token tensor (t_{n+1}) [B, C].
+        """X (tuple): A tuple containing two elements, f and t. (torch.Tensor): The feature tensors (t_i) [B, C, H
+        // 14, W // 14]. (torch.Tensor): The token tensor (t_{n+1}) [B, C].
 
         Returns:
             f (torch.Tensor): The global descriptor [B, m*l + g]

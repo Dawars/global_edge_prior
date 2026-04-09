@@ -1,20 +1,20 @@
 import pytorch_lightning as pl
 from torchvision import transforms as T
 from torch.utils.data.dataloader import DataLoader
-from dataloaders.MegadepthDataset import MegadepthDataset, AnyData
+from dataloaders.MegadepthDataset import MegadepthDataset
 
 
-IMAGENET_MEAN_STD = {'mean': [0.485, 0.456, 0.406], 
+IMAGENET_MEAN_STD = {'mean': [0.485, 0.456, 0.406],
                      'std': [0.229, 0.224, 0.225]}
 
-VIT_MEAN_STD = {'mean': [0.5, 0.5, 0.5], 
+VIT_MEAN_STD = {'mean': [0.5, 0.5, 0.5],
                 'std': [0.5, 0.5, 0.5]}
 
 
 class MegadepthClassDataModule(pl.LightningDataModule):
     def __init__(self,
-                 src,
-                 gt_src_path,
+                 src=None,
+                 gt_src_path=None,
                  batch_size=32,
                  shuffle_all=False,
                  image_size=(480, 640),
@@ -23,7 +23,7 @@ class MegadepthClassDataModule(pl.LightningDataModule):
                  batch_sampler=None,
                  val_set_names=['pitts30k_val', 'msls_val'],
                  num_image_per_scene=-1,
-                 resample=False,                  
+                 resample=False,
 
                  ):
         super().__init__()
@@ -39,7 +39,7 @@ class MegadepthClassDataModule(pl.LightningDataModule):
         self.resample = resample
         self.gt_src_path = gt_src_path
         self.src = src
-        self.save_hyperparameters() # save hyperparameter with Pytorch Lightening
+        self.save_hyperparameters() # save hyperparameter with Pytorch Lightning
         self.train_transform = T.Compose([
             T.Resize(image_size, interpolation=T.InterpolationMode.BILINEAR),
             T.RandAugment(num_ops=3, interpolation=T.InterpolationMode.BILINEAR),
@@ -76,27 +76,22 @@ class MegadepthClassDataModule(pl.LightningDataModule):
             for valid_set_name in self.val_set_names:
                 if valid_set_name.lower() == 'megadepth':
                     self.val_datasets.append(MegadepthDataset(
-                        self.gt_src_path, 
-                        self.src,
-                        transform=self.train_transform, 
-                        num_image_per_scene=self.num_image_per_scene, 
-                        val=True, 
+                        gt_src_path=self.gt_src_path,
+                        src=self.src,
+                        transform=self.train_transform,
+                        num_image_per_scene=self.num_image_per_scene,
+                        val=True,
                         resample=self.resample
                         ))
-                elif self.val_set_names[0].lower() == 'megadepthlist':
-                    self.val_datasets.append(AnyData(transform=self.train_transform, val=True))
-                
+
+
     def reload(self):
-        
-        if self.val_set_names[0].lower() == 'megadepthlist':
-            self.train_dataset = AnyData(transform=self.train_transform)
-        else:
-            self.train_dataset = MegadepthDataset(
-                self.gt_src_path, 
-                self.src,
-                transform=self.train_transform, 
-                num_image_per_scene=self.num_image_per_scene, 
-                resample=self.resample)
+        self.train_dataset = MegadepthDataset(
+            gt_src_path=self.gt_src_path,
+            src=self.src,
+            transform=self.train_transform,
+            num_image_per_scene=self.num_image_per_scene,
+            resample=self.resample)
 
     def train_dataloader(self):
         self.reload()

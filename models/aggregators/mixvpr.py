@@ -40,7 +40,7 @@ class MixVPR(nn.Module):
         self.in_h = in_h # height of input feature maps
         self.in_w = in_w # width of input feature maps
         self.in_channels = in_channels # depth of input feature maps
-        
+
         self.out_channels = out_channels # depth wise projection dimension
         self.out_rows = out_rows # row wise projection dimesion
 

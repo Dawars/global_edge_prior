@@ -15,7 +15,7 @@ if ALLRANK_ROOT not in sys.path:
 
 from allrank.models.losses.lambdaLoss import lambdaLoss
 def get_loss(loss_name, loss_config=None):
-    
+
     if loss_name == 'SupConLoss': return losses.SupConLoss(temperature=0.07)
     if loss_name == 'CircleLoss': return losses.CircleLoss(m=0.4, gamma=80) #these are params for image retrieval
     if loss_name == 'MultiSimilarityLoss': return losses.MultiSimilarityLoss(alpha=1.0, beta=50, base=0.0, distance=DotProductSimilarity())
@@ -45,7 +45,7 @@ def get_miner(miner_name, margin=0.1):
 class NDCG(nn.Module):
     def __init__(self, k=-1, reduction='mean', sigma=1., mu=10):
         super().__init__()
-        self.k = k 
+        self.k = k
         self.reduction = reduction
         self.sigma = sigma
         self.mu=mu
@@ -84,10 +84,10 @@ class FocalLoss(nn.Module):
         loss = -1 * (1-pt)**self.gamma * logpt
         if self.size_average: return loss.mean()
         else: return loss.sum()
-    
+
 def get_torch_device():
-    """
-    Getter for an available pyTorch device.
+    """Getter for an available pyTorch device.
+
     :return: CUDA-capable GPU if available, CPU otherwise
     """
     return torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")

@@ -8,7 +8,7 @@ def get_backbone(
         backbone_arch='resnet50',
         backbone_config={}
     ):
-    """Helper function that returns the backbone given its name
+    """Helper function that returns the backbone given its name.
 
     Args:
         backbone_arch (str, optional): . Defaults to 'resnet50'.
@@ -27,9 +27,8 @@ def get_backbone(
         return backbones.DINOv3(model_name=backbone_arch, **backbone_config)
 
 def get_aggregator(agg_arch='ConvAP', agg_config={}):
-    """Helper function that returns the aggregation layer given its name.
-    If you happen to make your own aggregator, you might need to add a call
-    to this helper function.
+    """Helper function that returns the aggregation layer given its name. If you happen to make your own
+    aggregator, you might need to add a call to this helper function.
 
     Args:
         agg_arch (str, optional): the name of the aggregator. Defaults to 'ConvAP'.
@@ -38,7 +37,7 @@ def get_aggregator(agg_arch='ConvAP', agg_config={}):
     Returns:
         nn.Module: the aggregation layer
     """
-    
+
     if 'cosplace' in agg_arch.lower():
         assert 'in_dim' in agg_config
         assert 'out_dim' in agg_config
@@ -50,11 +49,11 @@ def get_aggregator(agg_arch='ConvAP', agg_config={}):
         else:
             assert 'p' in agg_config
         return aggregators.GeMPool(**agg_config)
-    
+
     elif 'convap' in agg_arch.lower():
         assert 'in_channels' in agg_config
         return aggregators.ConvAP(**agg_config)
-    
+
     elif 'mixvpr' in agg_arch.lower():
         assert 'in_channels' in agg_config
         assert 'out_channels' in agg_config
@@ -62,20 +61,20 @@ def get_aggregator(agg_arch='ConvAP', agg_config={}):
         assert 'in_w' in agg_config
         assert 'mix_depth' in agg_config
         return aggregators.MixVPR(**agg_config)
-        
+
     elif 'salad' in agg_arch.lower():
         assert 'num_channels' in agg_config
         assert 'num_clusters' in agg_config
         assert 'cluster_dim' in agg_config
         assert 'token_dim' in agg_config
         return aggregators.SALAD(**agg_config)
-    
+
 
 def get_classifier(
         edge_arch='dot',
         edge_config={}
     ):
-    """Helper function that returns the backbone given its name
+    """Helper function that returns the backbone given its name.
 
     Args:
         edge_arch (str, optional): . Defaults to 'dot'.
@@ -86,9 +85,9 @@ def get_classifier(
     """
 
     if 'dot' in edge_arch.lower():
-        return edge_predictors.WeightedDotProductClassifier(edge_arch, **edge_config) 
+        return edge_predictors.WeightedDotProductClassifier(edge_arch, **edge_config)
     elif 'gnn' in edge_arch.lower():
-        return edge_predictors.custom_gnn.Custom_GNN_Predcitor(edge_arch, **edge_config)  
+        return edge_predictors.custom_gnn.Custom_GNN_Predcitor(edge_arch, **edge_config)
 
 
 def custom_collate_fn(batch):
@@ -96,12 +95,12 @@ def custom_collate_fn(batch):
     image_list_flat = [i for item in batch for i in item[-1]]
     merged_gt = {}
     for item in batch:
-        merged_gt.update(item[1]) 
+        merged_gt.update(item[1])
 
     return {
         "images": images,
         "image_list": image_list_flat,
-        "GT": merged_gt,  
+        "GT": merged_gt,
     }
 
 def multi_classes_ranges(alpha, beta, K=5, smooth=True):
@@ -116,10 +115,7 @@ def multi_classes_ranges(alpha, beta, K=5, smooth=True):
 
 
 def assign_labels(y, tis):
-    """
-    assign discrete labels for scalars
-
-    """
+    """Assign discrete labels for scalars."""
     tis = np.array(tis)
     labels = np.searchsorted(tis, y, side='right') - 1
     labels = np.clip(labels, 0, len(tis) - 1)

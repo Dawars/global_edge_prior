@@ -1,10 +1,11 @@
-Official implementation of our CVPR 2026 paper: **Global-Aware Edge Prioritization for Pose Graph Initialization**
+Official implementation of our CVPR 2026 Oral paper: **Global-Aware Edge Prioritization for Pose Graph Initialization**
 
 <a href="https://arxiv.org/abs/2602.21963"><img src="https://img.shields.io/badge/arXiv-2602.21963-b31b1b" alt="arXiv"></a>
 
 Authors: [Tong Wei](https://weitong8591.github.io/), [Giorgos Tolias](https://cmp.felk.cvut.cz/~toliageo/), [Jiri Matas](https://cmp.felk.cvut.cz/~matas/), [Daniel Barath](https://scholar.google.com/citations?user=U9-D8DYAAAAJ&hl=EN) |
 
 ## Updates
+2026.4.9 Our paper is selected as CVPR'26 Oral!
 2026.3.31 Initial code for tests released!
 
 ## Installation
@@ -98,3 +99,7 @@ More details are covered in our paper and feel free to cite it if useful:
 }
 ```
 Contact me at weitongln@gmail.com or weitong@fel.cvut.cz.
+
+## Todos
+add hloc to the submodule
+from COLMAP sparse model to RANSAC inliers & triangulated inliers, and the code to combine them (normalized)

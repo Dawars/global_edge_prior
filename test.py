@@ -6,12 +6,12 @@ import torch
 import torch.nn.functional as F
 import torchvision.transforms as T
 from torch.utils.data import DataLoader
+from dataloaders.TestDataset import build_test_dataset
 
 from src.kruskals import *
 from src.test_utils import *
 from src.train_util import *
 from src.utils import *
-from dataloaders.TestDataset import build_test_dataset
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -39,7 +39,7 @@ def parse_args():
 
 args = parse_args()
 
-if args.src is None: 
+if args.src is None:
     args.src = load_config("data_dirs.yaml")[args.dataset]
 
 args.src = Path(args.src)
@@ -111,12 +111,12 @@ for scene in scenes:
             update_thr=args.update_thr
         )
 
-    if args.save_knn: 
+    if args.save_knn:
         save_knn_pairs(
-            scores_matrix, 
-            ks=args.ks, 
-            save_path=args.out_dir, 
-            image_list=image_list, 
+            scores_matrix,
+            ks=args.ks,
+            save_path=args.out_dir,
+            image_list=image_list,
             remove_prefix=str(args.src),
             suffix=scene
         )

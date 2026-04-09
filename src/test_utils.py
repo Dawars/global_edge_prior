@@ -48,8 +48,8 @@ def load_class_model(ckpt_path, config_path, device='cuda'):
 
 
 def global_tokens2scores(descriptors):
-    """computer the similarity matrix on global tokens."""
-    scores = torch.einsum('id,jd->ij', descriptors, descriptors) 
+    """Computer the similarity matrix on global tokens."""
+    scores = torch.einsum('id,jd->ij', descriptors, descriptors)
     N = descriptors.shape[0]
     diagonal = torch.eye(N, N).bool().to(scores.device)
     scores.masked_fill_(diagonal, -torch.inf)
@@ -57,49 +57,46 @@ def global_tokens2scores(descriptors):
 
 
 def adjacency_matrix_to_graph(adj_matrix, threshold=0):
-    """
-    Converts an adjacency (score) matrix into a graph representation for METIS.
+    """Converts an adjacency (score) matrix into a graph representation for METIS.
+
     Removes weak connections if a threshold is set.
     """
     n = adj_matrix.shape[0]
     adj_matrix = np.maximum(adj_matrix, adj_matrix.T)
 
     adjacency_list = []
-    
+
     for i in range(n):
         neighbors = [j for j in range(n) if adj_matrix[i, j] > threshold and i != j]
         adjacency_list.append(neighbors)
-    
+
     return adjacency_list
 
 def partition_graph(adj_matrix, k=2, threshold=0):
-    """
-    Partitions the graph using METIS into k clusters.
-    """
+    """Partitions the graph using METIS into k clusters."""
     adjacency_list = adjacency_matrix_to_graph(adj_matrix, threshold)
     n_cuts, partitions = pymetis.part_graph(k, adjacency=adjacency_list)
-    
+
     return partitions
 
 
 def precision_at_k(y_true, y_pred, k):
-    """
-    Calculate precision at k for a single sample
-    
+    """Calculate precision at k for a single sample.
+
     Args:
         y_true (list): Ground truth (true relevance labels)
         y_pred (list): Predicted scores or rankings
         k (int): Number of top results to consider
-        
+
     Returns:
         float: Precision@k
     """
     # Sort predictions and get top k indices
     top_k_indices = sorted(range(len(y_pred)), key=lambda i: y_pred[i], reverse=True)[:k]
-    
+
     # Count relevant items in top k
     relevant_in_top_k = sum(1 for i in top_k_indices if y_true[i] == 1)
-    
+
     # Calculate precision
     return relevant_in_top_k / k
 
@@ -120,7 +117,7 @@ def graph_clustering(scores, k_init=3, k_max=10, max_edges=400*399/2):
             break
         else:
             break
-        
+
     return partitions, clusters
 
 
@@ -136,9 +133,9 @@ def graph_clustering_nn(pretrained_salad_scores, num_clusters, k_neighbors=1):
         nn = torch.topk(pretrained_salad_scores[idx], k_neighbors, dim=1).indices.T.flatten().tolist()
         expanded.update(nn)
         if k_neighbors ==1:
-            indices.append(np.array(list(expanded))) 
+            indices.append(np.array(list(expanded)))
         else:
-            indices.append(np.array(list(expanded)[:500])) 
+            indices.append(np.array(list(expanded)[:500]))
 
     return indices
 
@@ -152,11 +149,11 @@ def graph_cluster_connect(pretrained_salad_scores, num_clusters, k_neighbors=1, 
             break
     return indices
 
-    
+
 def save_knn_pairs(scores_matrix, ks=[1, 2, 3, 5, 10], save_path=None, image_list=None, remove_prefix='', suffix=''):
     for k in ks:
         N = len(image_list)
-        topk = torch.topk(scores_matrix, k) if N >= k else torch.topk(scores_matrix, N) 
+        topk = torch.topk(scores_matrix, k) if N >= k else torch.topk(scores_matrix, N)
         with open(save_path/Path(f'ours_pairs_{k}_matrix_{suffix}.txt'), "w") as doc:
             for i, name in enumerate(image_list):
                 for j in topk.indices[i]:
@@ -204,7 +201,7 @@ def shortest_path_matrix(edges):
 def shortest_path_matrix_total(edges, total_nodes):
     # build adjacency
     adj = build_graph(edges)
-    
+
     # ensure all nodes exist, even isolated ones
     for i in range(total_nodes):
         if i not in adj:
@@ -265,11 +262,8 @@ def save_mst_pairs_update_dists(
     dyn=True,
     update_thr=0.9,
 ):
-    """
-    Build multiple spanning trees iteratively from a score matrix and optionally
-    update the score matrix after each tree.
-
-    """
+    """Build multiple spanning trees iteratively from a score matrix and optionally update the score matrix after
+    each tree."""
 
     N = len(scores_matrix)
 
@@ -360,7 +354,7 @@ def save_mst_pairs_update_dists(
 
 def compute_requried_k(dist_max1, dist_max2, threshold=0.10):
     # old, new
-    if abs(dist_max1-dist_max2)/dist_max1 < threshold: 
+    if abs(dist_max1-dist_max2)/dist_max1 < threshold:
         return False
     else:
         return True
@@ -381,12 +375,10 @@ def save_mst_pairs_update_dists_numpy(
     dyn=True,
     update_thr=0.9,
 ):
-    """
-    Build multiple spanning trees iteratively from a score matrix and optionally
-    update the score matrix after each tree.
+    """Build multiple spanning trees iteratively from a score matrix and optionally update the score matrix after
+    each tree.
 
-    Pure NumPy version for matrix ops.
-    Graph/MST helpers (CreateGraph, kruskal_optimized, update_dist) are reused.
+    Pure NumPy version for matrix ops. Graph/MST helpers (CreateGraph, kruskal_optimized, update_dist) are reused.
     """
 
     # ---------- input to numpy ----------
@@ -505,27 +497,27 @@ def save_mst_pairs_update_dists_numpy(
     return return_edges
 
 def save_mst_pairs(
-        scores_matrix, 
-        ks=[1, 2, 3, 5], 
-        save_path=None, 
-        image_list=None, 
-        scene='',              
-        suffix='', 
+        scores_matrix,
+        ks=[1, 2, 3, 5],
+        save_path=None,
+        image_list=None,
+        scene='',
+        suffix='',
     ):
 
-    # Note here the input score matrix is not a cost 
+    # Note here the input score matrix is not a cost
     N = len(scores_matrix)
     all_edges_cc = []
     return_edges = dict()
     # cost for minimal spanning tree construction
     cost_matrix = -scores_matrix
-    for k_i in tqdm(range(max(ks))): 
+    for k_i in tqdm(range(max(ks))):
 
         G = CreateGraph(cost_matrix)
-        if k_i > 0: 
+        if k_i > 0:
             for (i, j) in all_edges_cc:
                 G.remove_edge(i, j)
-        try:                    
+        try:
             find_edges_, _, _, _ = kruskal_optimized(G)
             find_edges = []
             weights = []
@@ -538,7 +530,7 @@ def save_mst_pairs(
         except Exception as e:
             print(e, f"no more trees, in total {k_i+1} spanning trees!")
             break
-        
+
         if k_i+1 in ks:
             with open(save_path/Path(f'ours_{scene}_pairs_{k_i+1}_trees_{suffix}.txt'), "w") as doc:
               for _, (edge_i, edge_j) in enumerate(all_edges_cc):
@@ -580,14 +572,15 @@ def run_edge_classifier(tokens, class_model, args):
 
 
 def infer_edges_clustered(
-    tokens, 
-    class_model, 
-    args, 
-    out_dir, 
+    tokens,
+    class_model,
+    args,
+    out_dir,
     scene
 ):
-    """ graph clustering is applied when N > 500 due tp CUDA memory constraint.
-        average the scores if multiple scores gieven by different subgroups.
+    """Graph clustering is applied when N > 500 due tp CUDA memory constraint.
+
+    average the scores if multiple scores gieven by different subgroups.
     """
     N = len(tokens)
 
@@ -662,14 +655,12 @@ def find_unreliable_nodes(
     topk=30,
     mean_thr=0.2,
 ):
-    """
-    Find unreliable nodes based on how often they appear in top-k neighbors.
+    """Find unreliable nodes based on how often they appear in top-k neighbors.
 
     1. For each row, select top-k highest scores.
     2. Count how often each node appears.
     3. Nodes that never appear are considered unreliable.
     4. Second check: if their average score (per row) is high, keep them.
-
     """
     S = scores_matrix.clone()
 
@@ -695,8 +686,7 @@ def find_unreliable_nodes(
 
 
 def build_cost_matrix(scores_matrix):
-    """
-    Convert score matrix to cost matrix for MST.
+    """Convert score matrix to cost matrix for MST.
 
     cost = 1 - score
     Diagonal is set to +inf to avoid self-connections.
@@ -735,7 +725,7 @@ def convert_world_to_cam_to_cam_to_world(extrinsics):
     return invert_se3(T_w2c)
 
 def extrinsics_to_matrix(extrinsics):
-    """Convert [N, 3, 4] extrinsics to homogenous [N, 4, 4] matrices."""
+    """Convert [N, 3, 4] extrinsics to homogeneous [N, 4, 4] matrices."""
     if extrinsics.ndim != 3 or extrinsics.shape[-2:] != (3, 4):
         raise ValueError(f"Expected extrinsics of shape [N,3,4], got {tuple(extrinsics.shape)}")
     n = extrinsics.shape[0]

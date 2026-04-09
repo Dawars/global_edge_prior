@@ -10,6 +10,8 @@ from src.train_util import load_config
 from dataloaders.TestDataset import ImageDataset
 from pathlib import Path
 config = load_config("data_dirs.yaml")
+"""CUDA-12.4.0 PyTorch-Geometric Pillow/10.2.0 PyTorch-Lightning/2.5.2 torchvision/0.23.0 Open3D/0.18.0."""
+
 
 # check if gpu device is available
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -39,7 +41,7 @@ with torch.no_grad():
         tokens.append(class_model.backbone(image.to(class_model.device)))
     tokens = torch.cat(tokens, dim=0) # N, 8448
 
-N = len(tokens)   
+N = len(tokens)
 # edge score prediction
 with torch.no_grad():
     predicted = class_model.edge_classifier(tokens)
@@ -61,7 +63,7 @@ selected_edges = save_mst_pairs_update_dists_numpy(
             image_list=image_list,
         )
 
-### TODO: run feature extraction, matching and geometric verification, then COLMAP mapping to finsih the reconstruction. 
+### TODO: run feature extraction, matching and geometric verification, then COLMAP mapping to finish the reconstruction.
 
 
 ### Optional: aggregate node scoers based on the edges
@@ -105,8 +107,8 @@ def evaluate(vggt_result_path, image_list_used):
     Twc = convert_world_to_cam_to_cam_to_world(extrinsics)
     result = Twc.detach().cpu().float()
 
-    Twc_pred = result.numpy() 
-    image_names = image_list       
+    Twc_pred = result.numpy()
+    image_names = image_list
     sparse_gt_path = Path(f"{config['phototourism']}/{scene}/sfm/")
     sparse_gt = pycolmap.Reconstruction(sparse_gt_path)
     Twc_pred_dict = {

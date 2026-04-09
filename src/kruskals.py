@@ -28,11 +28,11 @@ def CreateGraph(matrix, thr=0):
   wtMatrix = matrix
   n = len(wtMatrix)
 
-	# Adds egdes along with their weights to the graph 
+	# Adds edges along with their weights to the graph
   for i in range(n) :
     for j in range(n)[i:] :
       # if wtMatrix[i][j] > thr :
-      G.add_edge(i, j, length = wtMatrix[i][j]) 
+      G.add_edge(i, j, length = wtMatrix[i][j])
   return G
 
 # draws the graph and displays the weights on the edges
@@ -83,22 +83,20 @@ def kruskal_optimized(G, image_list=None, ransac_inliers=None, thr=30, inlier_ke
               num_inliers = ransac_inliers[f"{image_list[u_idx]}_{image_list[v_idx]}"]
               ransac_times += 1
               if inlier_key != 'R':
-                if num_inliers < thr: 
+                if num_inliers < thr:
                   reject_times += 1
                   reject_edges += [(u, v)]
                   continue
               else:
-                if num_inliers > thr: 
+                if num_inliers > thr:
                   reject_times += 1
                   reject_edges += [(u, v)]
                   continue
-              
+
             mst.append((u, v, length))
             union(u_idx, v_idx)
 
-    if len(reject_edges) == 0: 
+    if len(reject_edges) == 0:
        return mst
-    else: 
+    else:
        return mst, ransac_times, reject_times, reject_edges
-
-
