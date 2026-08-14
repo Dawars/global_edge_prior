@@ -1,6 +1,7 @@
 import os
 import argparse
 from pathlib import Path
+from tqdm.auto import tqdm
 
 import torch
 import torch.nn.functional as F
@@ -11,7 +12,6 @@ from dataloaders.TestDataset import build_test_dataset
 from src.kruskals import *
 from src.test_utils import *
 from src.train_util import *
-from src.utils import *
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -56,7 +56,8 @@ for scene in scenes:
     scene_dir = args.src / scene
 
     # Skip invalid scenes
-    if (not scene_dir.is_dir()) or (not (scene_dir / "sfm").is_dir()):
+    print(scene_dir)
+    if (not scene_dir.is_dir()):  # or (not (scene_dir / "sfm").is_dir()):
         continue
 
     test_dataset, image_list = build_test_dataset(args, scene, pre=pre)
@@ -70,14 +71,18 @@ for scene in scenes:
 
     N = len(image_list)
 
+    print("Num images", N)
+    print(class_model.device)
+
     # Compute all image tokens
     with torch.no_grad():
         tokens = []
-        for image in test_data_loader:
+        for image in tqdm(test_data_loader):
             tokens.append(class_model.backbone(image.to(class_model.device)))
         tokens = torch.cat(tokens, dim=0)
 
     # edge score prediction
+    print("Start infer_edges")
     predicted = infer_edges(tokens, class_model, args, out_dir, scene)
 
     probs = predicted["probs"]
@@ -106,7 +111,7 @@ for scene in scenes:
             ks=ks,
             save_path=out_dir,
             image_list=image_list,
-            suffix=scene,
+            suffix = args.extra,
             knn=args.knn,
             update_thr=args.update_thr
         )
@@ -118,5 +123,5 @@ for scene in scenes:
             save_path=args.out_dir,
             image_list=image_list,
             remove_prefix=str(args.src),
-            suffix=scene
+            suffix = args.extra,
         )
