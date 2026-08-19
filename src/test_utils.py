@@ -709,7 +709,7 @@ def save_filtered_image_list(out_dir, scene, image_list):
 def build_output_dir(args):
     parts = [
         f"{args.knn}nn",
-        f"{args.update_thr}{args.extra}",
+        f"{args.update_thr}_{args.extra}",
         "nodeout" if args.filter_nodes else None,
     ]
     extra = "_".join([p for p in parts if p])
