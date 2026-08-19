@@ -576,7 +576,8 @@ def infer_edges_clustered(
     class_model,
     args,
     out_dir,
-    scene
+    scene,
+    cluster_size,
 ):
     """Graph clustering is applied when N > 500 due tp CUDA memory constraint.
 
@@ -584,8 +585,8 @@ def infer_edges_clustered(
     """
     N = len(tokens)
 
-    num_clusters = max(round(N / 300), 3)
-    cluster_file = out_dir / f"{scene}_clusters.npz"
+    num_clusters = max(round(N / cluster_size), 3)
+    cluster_file = out_dir / f"{scene}_{cluster_size}clusters.npz"
 
     if cluster_file.exists():
         indices = np.load(cluster_file, allow_pickle=True)['indices']
@@ -646,7 +647,7 @@ def infer_edges(tokens, class_model, args, out_dir, scene):
     N = len(tokens)
 
     if args.cluster and N > args.max_size:
-        return infer_edges_clustered(tokens, class_model, args, out_dir, scene)
+        return infer_edges_clustered(tokens, class_model, args, out_dir, scene, args.max_size)
 
     return infer_edges_direct(tokens, class_model, args)
 
