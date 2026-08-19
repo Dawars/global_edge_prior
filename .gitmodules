@@ -1,6 +1,6 @@
 [submodule "external/allrank"]
 	path = external/allrank
-	url = git@github.com:weitong8591/allRank.git
+	url = git@github.com:dawars/allRank.git
 [submodule "external/vggt"]
 	path = external/vggt
-	url = https://github.com/facebookresearch/vggt.git
+	url = https://github.com/harry7557558/vggt-low-vram.git

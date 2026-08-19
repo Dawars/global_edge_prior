@@ -1,0 +1,16 @@
+allRank #@ git+https://github.com/dawars/allRank.git@f0150b905efde3a0e93fb4aa9f00ab4bf50acbd3
+gluefactory @ git+https://github.com/cvg/glue-factory@2d17e3b3bd7d30f0c828d4c4d3eac4ecefbf283d
+numpy
+opencv-python
+pandas
+pillow
+pycolmap
+pymetis
+pytorch-lightning
+pytorch-metric-learning
+scikit-learn
+scipy
+torch
+torch-geometric
+torchmetrics
+torchvision
